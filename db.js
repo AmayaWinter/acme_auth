@@ -60,8 +60,7 @@ User.authenticate = async ({ username, password }) => {
 
   if (result) {
     const token = jwt.sign({ userId: user.id }, process.env.JWT);
-    console.log(token);
-    return token;
+    return {user, token};
     // return user.id;
   }
 
@@ -71,39 +70,39 @@ User.authenticate = async ({ username, password }) => {
 };
 
 const syncAndSeed = async () => {
-  await conn.sync({ force: true });
-  const credentials = [
-    { username: 'lucy', password: 'lucy_pw' },
-    { username: 'moe', password: 'moe_pw' },
-    { username: 'larry', password: 'larry_pw' },
-  ];
-  const [lucy, moe, larry] = await Promise.all(
-    credentials.map((credential) => User.create(credential))
-  );
-
-  lucy.addNote(
-    await Note.create({
-      note: `I love Lucy`,
-    })
-  );
-  moe.addNote(
-    await Note.create({
-      note: `Password is easy`,
-    })
-  );
-  larry.addNote(
-    await Note.create({
-      note: `I love lobster`,
-    })
-  );
-
-  return {
-    users: {
-      lucy,
-      moe,
-      larry,
-    },
-  };
+  await conn.sync({ /*force: true*/ });
+  // const credentials = [
+  //   { username: 'lucy', password: 'lucy_pw' },
+  //   { username: 'moe', password: 'moe_pw' },
+  //   { username: 'larry', password: 'larry_pw' },
+  // ];
+  // const [lucy, moe, larry] = await Promise.all(
+  //   credentials.map((credential) => User.create(credential))
+  // );
+  //
+  // lucy.addNote(
+  //   await Note.create({
+  //     note: `I love Lucy`,
+  //   })
+  // );
+  // moe.addNote(
+  //   await Note.create({
+  //     note: `Password is easy`,
+  //   })
+  // );
+  // larry.addNote(
+  //   await Note.create({
+  //     note: `I love lobster`,
+  //   })
+  // );
+  //
+  // return {
+  //   users: {
+  //     lucy,
+  //     moe,
+  //     larry,
+  //   },
+  // };
 };
 
 module.exports = {

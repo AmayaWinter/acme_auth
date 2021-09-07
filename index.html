@@ -67,7 +67,9 @@
     constructor() {
       super();
       this.state = {
-        auth: {},
+        loggedIn: false,
+        username: null,
+        id: null,
         notes: []
       };
       this.signIn = this.signIn.bind(this);
@@ -75,29 +77,60 @@
       this.fetchNotes = this.fetchNotes.bind(this);
     }
 
-    logout() {
-      window.localStorage.removeItem('token');
-      this.setState({auth: {}});
+    componentDidMount() {
+      this.attemptTokenLogin();
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+      if(prevState.loggedIn !== this.state.loggedIn) {
+        this.fetchNotes();
+      }
     }
 
     async attemptTokenLogin() {
-      const token = window.localStorage.getItem('token');
-      if (token) {
-        const response = await axios.get('/api/auth', {
-          headers: {
-            authorization: token
-          }
-        });
-        this.setState({auth: response.data});
+      try {
+        if(!this.loggedIn) {
+          const {data} = await axios.get('/api/auth');
+          console.log('data', data);
+          this.setState({
+            ...data
+          });
+        }
+      }
+      catch(err) {
+        console.log(err);
+      }
+      // }
+    }
+
+    async signIn(credentials) {
+      try {
+        let {data} = await axios.post('/api/auth', credentials);
+        this.setState({
+          ...data
+        })
+      }
+      catch(err) {
+        console.log('signin err', err);
+      }
+    }
+
+    async logout() {
+      try {
+        let {data} = await axios.get('/api/auth/logout');
+        this.setState({
+          ...data
+        })
+      }
+      catch(err) {
+        console.log('signin err', err);
       }
     }
 
     async fetchNotes() {
-      if(this.state.auth.id) {
+      if(this.state.loggedIn) {
         try {
-          const response = await axios.get(`/api/user/${this.state.auth.id}/notes`, {
-            headers: {'Authorization': window.localStorage.token}
-          });
+          const response = await axios.get(`/api/user/${this.state.id}/notes`);
           this.setState({
             notes: response.data
           });
@@ -108,35 +141,21 @@
       }
     }
 
-    componentDidMount() {
-      this.attemptTokenLogin();
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-      if(prevState.auth !== this.state.auth) {
-        this.fetchNotes();
-      }
-    }
 
 
-    async signIn(credentials) {
-      let response = await axios.post('/api/auth', credentials);
-      const {token} = response.data;
-      window.localStorage.setItem('token', token);
-      this.attemptTokenLogin();
-    }
+
 
     render() {
-      const {auth} = this.state;
+      const {loggedIn} = this.state;
       const {signIn, logout} = this;
 
-      if (!auth.id) {
+      if (!loggedIn) {
         return <SignIn signIn={signIn}/>
       }
       else {
         return (
           <div>
-            Welcome {auth.username}
+            Welcome {this.state.username}
             <button onClick={logout}>Logout</button>
             <ul>
               {
