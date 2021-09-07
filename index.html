@@ -3,13 +3,30 @@
   <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js" integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ==" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"
+          integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ=="
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.1.1/redux.min.js"
+          crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-redux/7.2.5/react-redux.min.js"></script>
 </head>
 <body>
 <div id='root'></div>
 <script type='text/babel'>
-  class SignIn extends React.Component{
-    constructor(){
+
+  // import {createStore} from 'redux';
+  //
+  // const notesReducer = (state = [], action) => {
+  //   switch (action.type) {
+  //     default:
+  //       return state;
+  //   }
+  // }
+  //
+  // const store = createStore(notesReducer);
+
+  class SignIn extends React.Component {
+    constructor() {
       super();
       this.state = {
         username: '',
@@ -18,24 +35,27 @@
       this.onChange = this.onChange.bind(this);
       this.onSubmit = this.onSubmit.bind(this);
     }
-    onChange(ev){
-      this.setState({ [ev.target.name]: ev.target.value });
+
+    onChange(ev) {
+      this.setState({[ev.target.name]: ev.target.value});
     }
-    onSubmit(ev){
+
+    onSubmit(ev) {
       ev.preventDefault();
-      const { username, password } = this.state;
+      const {username, password} = this.state;
       this.props.signIn({
         username,
         password
       });
     }
-    render(){
-      const { onChange, onSubmit } = this;
-      const { username, password } = this.state;
+
+    render() {
+      const {onChange, onSubmit} = this;
+      const {username, password} = this.state;
       return (
-        <form onSubmit={ onSubmit }>
-          <input value={ username } onChange={ onChange } name='username'/>
-          <input value={ password } onChange={ onChange } name='password'/>
+        <form onSubmit={onSubmit}>
+          <input value={username} onChange={onChange} name='username'/>
+          <input value={password} onChange={onChange} name='password'/>
           <button>Sign In</button>
         </form>
       );
@@ -43,56 +63,97 @@
   }
 
 
-  class App extends React.Component{
-    constructor(){
+  class App extends React.Component {
+    constructor() {
       super();
       this.state = {
-        auth: {}
+        auth: {},
+        notes: []
       };
       this.signIn = this.signIn.bind(this);
       this.logout = this.logout.bind(this);
+      this.fetchNotes = this.fetchNotes.bind(this);
     }
-    logout(){
+
+    logout() {
       window.localStorage.removeItem('token');
-      this.setState({ auth: {}});
+      this.setState({auth: {}});
     }
-    async attemptTokenLogin(){
+
+    async attemptTokenLogin() {
       const token = window.localStorage.getItem('token');
-      if(token){
+      if (token) {
         const response = await axios.get('/api/auth', {
           headers: {
             authorization: token
           }
         });
-        this.setState({ auth: response.data });
+        this.setState({auth: response.data});
       }
     }
-    componentDidMount(){
+
+    async fetchNotes() {
+      if(this.state.auth.id) {
+        try {
+          const response = await axios.get(`/api/user/${this.state.auth.id}/notes`, {
+            headers: {'Authorization': window.localStorage.token}
+          });
+          this.setState({
+            notes: response.data
+          });
+          //set the state
+        } catch (err) {
+          console.log(err)
+        }
+      }
+    }
+
+    componentDidMount() {
       this.attemptTokenLogin();
     }
-    async signIn(credentials){
+
+    componentDidUpdate(prevProps, prevState) {
+      if(prevState.auth !== this.state.auth) {
+        this.fetchNotes();
+      }
+    }
+
+
+    async signIn(credentials) {
       let response = await axios.post('/api/auth', credentials);
-      const { token } = response.data;
+      const {token} = response.data;
       window.localStorage.setItem('token', token);
       this.attemptTokenLogin();
     }
-    render(){
-      const { auth } = this.state;
-      const { signIn, logout } = this;
-      if(!auth.id){
-        return <SignIn signIn={ signIn }/>
+
+    render() {
+      const {auth} = this.state;
+      const {signIn, logout} = this;
+
+      if (!auth.id) {
+        return <SignIn signIn={signIn}/>
       }
       else {
         return (
           <div>
-            Welcome { auth.username }
-            <button onClick={ logout }>Logout</button>
+            Welcome {auth.username}
+            <button onClick={logout}>Logout</button>
+            <ul>
+              {
+                this.state.notes.map(note => <li>{note.note}</li>)
+              }
+            </ul>
           </div>
         );
       }
     }
   }
-  ReactDOM.render(<App />, document.querySelector('#root'));
+
+  ReactDOM.render(
+    // <Provider store={store}>
+    <App/>
+    // </Provider>
+      , document.querySelector('#root'));
 </script>
 </body>
 </html>
